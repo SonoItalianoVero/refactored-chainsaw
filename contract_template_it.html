@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* IMPOSTAZIONI PAGINA A4 */
+        @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+            @bottom-center {
+                content: "Pagina " counter(page) " | {{ bank_name }} – Informazioni preliminari #2690497";
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 8pt;
+                color: #888;
+            }
+        }
+
+        /* STILI DI BASE */
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #222;
+            line-height: 1.4;
+        }
+
+        /* FILIGRANA DI SFONDO */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 30%; left: 20%; right: 20%; bottom: 30%;
+            z-index: -1;
+            background-image: url('file://{{ logo_santa }}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            opacity: 0.03;
+        }
+
+        /* INTESTAZIONE */
+        .header-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .header-table td { vertical-align: middle; }
+        .logo-img { max-height: 65px; }
+
+        h1 { font-size: 16pt; color: #0E2A47; border-bottom: 2px solid #0E2A47; padding-bottom: 5px; margin-bottom: 5px; }
+        h2 { font-size: 12pt; color: #0E2A47; margin-top: 25px; margin-bottom: 10px; }
+        .subtext { font-size: 9pt; color: #555; }
+        .right-text { text-align: right; font-size: 9pt; }
+
+        /* BOX STATO PRATICA */
+        .status-box {
+            background-color: #EEF3FF;
+            border: 1px solid #96A6C8;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status-box table { width: 100%; border-collapse: collapse; }
+        .status-box td { padding: 4px 0; vertical-align: top; }
+        .status-box td:first-child { width: 150px; font-weight: bold; color: #0E2A47; }
+
+        /* TABELLE DATI */
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .data-table th, .data-table td {
+            border: 1px solid #ccc;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        .data-table th { background-color: #ececec; font-weight: bold; width: 40%; }
+        
+        .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .summary-table th, .summary-table td {
+            border: 1px solid #ccc; padding: 8px 10px; text-align: left;
+        }
+        .summary-table th { background-color: #f5f5f5; width: 40%; font-weight: normal; }
+
+        /* LISTE */
+        ul { margin-top: 5px; margin-bottom: 15px; padding-left: 20px; }
+        li { margin-bottom: 4px; }
+
+        /* FIRME */
+        .signatures { width: 100%; margin-top: 40px; page-break-inside: avoid; }
+        .signatures td { width: 33.3%; text-align: center; vertical-align: bottom; padding: 0 10px; }
+        .sig-line { border-bottom: 1px solid #000; height: 60px; margin-bottom: 5px; position: relative; }
+        .sig-img { max-height: 50px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+
+        /* PIANO DI AMMORTAMENTO */
+        .schedule-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 15px; }
+        .schedule-table thead { display: table-header-group; }
+        .schedule-table tr { page-break-inside: avoid; }
+        .schedule-table th { background-color: #0E2A47; color: white; padding: 6px; text-align: right; border: 1px solid #0E2A47;}
+        .schedule-table td { padding: 6px; border: 1px solid #ddd; text-align: right; }
+        .schedule-table th:first-child, .schedule-table td:first-child { text-align: center; }
+        .schedule-table tr:nth-child(even) { background-color: #f9f9f9; }
+
+        .page-break { page-break-before: always; }
+    </style>
+</head>
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td style="text-align: left;"><img src="file://{{ logo_higobi }}" class="logo-img"></td>
+            <td style="text-align: center;"><img src="file://{{ logo_partner1 }}" class="logo-img"></td>
+            <td style="text-align: right;"><img src="file://{{ logo_partner2 }}" class="logo-img"></td>
+        </tr>
+    </table>
+
+    <h1>ING Bank N.V. – Informazioni Preliminari / Contratto Preliminare #2690497</h1>
+    <div class="subtext">
+        Mediazione: <b>ABAKO S.R.L.</b>, Strada Statale 16 Adriatica 8, CAP 61121 Pesaro (PU)<br>
+        Iscrizione OAM: A15173 | Codice Fiscale: 02777020419<br>
+        Web: abako-prestiti.it | Supporto tramite operatore dedicato
+    </div>
+    
+    <div class="right-text" style="margin-top: 10px; margin-bottom: 15px;">
+        Cliente: <b>{{ client }}</b><br>
+        Data emissione: {{ date_now }}
+    </div>
+
+    <div class="status-box">
+        <table>
+            <tr><td>Stato della richiesta:</td><td><b>CONFERMATO</b> (Approvazione bancaria ottenuta)</td></tr>
+            <tr><td>Tipo di documento:</td><td><b>Contratto confermato</b></td></tr>
+            <tr><td>In attesa di:</td><td>Firma del presente documento, pagamento della commissione di mediazione, invio del piano di ammortamento definitivo</td></tr>
+            <tr><td>Erogazione:</td><td>Solo dopo la firma del contratto e il pagamento della commissione di mediazione (210 €).</td></tr>
+        </table>
+    </div>
+
+    <table class="data-table">
+        <tr><th>Parametro</th><td style="background-color: #ececec; font-weight: bold;">Dettagli</td></tr>
+        <tr><th>Importo netto del prestito</th><td><b>{{ amount }}</b></td></tr>
+        <tr><th>TAN (Tasso Annuale Nominale)</th><td>{{ tan }} %</td></tr>
+        <tr><th>TAEG (Tasso Annuale Effettivo Globale)</th><td>{{ eff }} %</td></tr>
+        <tr><th>Durata</th><td>{{ term }} mesi (max. 84)</td></tr>
+        <tr><th>Rata mensile*</th><td><b>{{ monthly_payment }}</b></td></tr>
+        <tr><th>Spese di istruttoria</th><td>0 €</td></tr>
+        <tr><th>Costi di incasso rata</th><td>0 €</td></tr>
+        <tr><th>Costi di gestione</th><td>0 €</td></tr>
+        <tr><th>Premio assicurativo (se richiesto)</th><td>210 €</td></tr>
+        <tr><th>Erogazione fondi</th><td>30–60 min dopo la firma e il pagamento (210 €)</td></tr>
+    </table>
+    <div style="font-size: 8pt; margin-top: -15px; margin-bottom: 20px;">*La rata mensile è calcolata alla data della presente offerta.</div>
+
+    <h2>Vantaggi</h2>
+    <ul>
+        <li>Possibilità di saltare fino a 3 rate durante il periodo del prestito.</li>
+        <li>Estinzione anticipata totale o parziale senza penali.</li>
+        <li>Riduzione del tasso –0,10% ogni 12 mesi di pagamenti regolari (fino a un min. di 5,95%).</li>
+        <li>Sospensione della rata in caso di perdita del lavoro (previa approvazione della banca).</li>
+    </ul>
+
+    <h2>Sanzioni e Interessi di Mora</h2>
+    <ul>
+        <li>Ritardo superiore a 5 giorni: Tasso applicato + 2 punti percentuali.</li>
+        <li>Sollecito di pagamento: 10 € via posta / 5 € digitale.</li>
+        <li>Mancato pagamento di 2 rate: Risoluzione del contratto e recupero crediti.</li>
+        <li>Penale contrattuale applicata solo in caso di violazione degli obblighi contrattuali.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>Comunicazione e Servizi ABAKO S.R.L.</h2>
+    <ul>
+        <li>Tutte le comunicazioni tra la Banca e il Cliente avvengono esclusivamente tramite ABAKO S.R.L.</li>
+        <li>Il contratto e gli allegati vengono trasmessi in formato PDF tramite Telegram.</li>
+        <li>Commissione di mediazione ABAKO: tariffa fissa di servizio 210 € (non è un costo bancario).</li>
+        <li>L'erogazione dei fondi avviene rigorosamente solo dopo la firma del contratto e il pagamento della commissione di mediazione (210 €).</li>
+        <li>Le coordinate per il pagamento saranno comunicate individualmente dal manager ABAKO incaricato (non effettuare pagamenti a terzi).</li>
+    </ul>
+
+    <h2>Riepilogo (Stima)</h2>
+    <table class="summary-table">
+        <tr><th>Prestito netto</th><td>{{ amount }}</td></tr>
+        <tr><th>Interessi stimati (totale durata)</th><td>{{ total_interest }}</td></tr>
+        <tr><th>Costi una tantum</th><td>0 €</td></tr>
+        <tr><th>Costi di incasso</th><td>0 €</td></tr>
+        <tr><th>Debito totale stimato</th><td><b>{{ total_debt }}</b></td></tr>
+        <tr><th>Durata</th><td>{{ term }} mesi</td></tr>
+    </table>
+
+    <h2>Firme</h2>
+    <table class="signatures">
+        <tr>
+            <td>
+                <div class="sig-line"></div>
+                Firma Cliente
+            </td>
+            <td>
+                <div class="sig-line">
+                    <img src="file://{{ sign_bank }}" class="sig-img">
+                </div>
+                Rappresentante<br>ING Bank N.V. (Milano)
+            </td>
+            <td>
+                <div class="sig-line">
+                    <img src="file://{{ sign_c2g }}" class="sig-img">
+                </div>
+                Rappresentante<br>ABAKO S.R.L.
+            </td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+    
+    <h2>Allegato: Piano di Ammortamento Preliminare</h2>
+    <div class="subtext" style="margin-bottom: 10px;">Il seguente piano di ammortamento è una rappresentazione puramente indicativa.</div>
+    
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th width="8%">N.</th>
+                <th width="15%" style="text-align:center;">Data</th>
+                <th width="19%">Rata</th>
+                <th width="19%">Interessi</th>
+                <th width="19%">Capitale</th>
+                <th width="20%">Debito Residuo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in schedule %}
+            <tr>
+                <td style="text-align:center;">{{ row.nr }}</td>
+                <td style="text-align:center;">{{ row.date }}</td>
+                <td><b>{{ row.payment }}</b></td>
+                <td style="color: #d9534f;">{{ row.interest }}</td>
+                <td style="color: #5cb85c;">{{ row.principal }}</td>
+                <td style="font-weight: bold; color: #555;">{{ row.balance }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>
