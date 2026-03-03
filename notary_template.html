@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 25mm 20mm 25mm 20mm;
+            @bottom-right {
+                content: counter(page);
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .header img {
+            height: 60px; /* Размер логотипа (можно поменять) */
+        }
+        .bold {
+            font-weight: bold;
+        }
+        h3 {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        .costs {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .costs p {
+            margin: 5px 0;
+        }
+        .stamp-container {
+            margin-top: 40px;
+            text-align: center;
+        }
+        .stamp-container img {
+            width: 280px; /* Размер печати (можно поменять) */
+        }
+        .signature {
+            margin-top: 40px;
+        }
+        .signature p {
+            margin: 2px 0;
+        }
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="{{ logo_ing }}" alt="ING">
+    </div>
+
+    <p><span class="bold">Oggetto:</span> Autenticazione notarile del contratto di credito Pratica n. 2690497 (importo del credito superiore a 5.000 €)</p>
+
+    <p style="text-align: right;"><span class="bold">Data:</span> {{ date_now }}</p>
+
+    <p><span class="bold">A:</span> {{ company_legal }}</p>
+
+    <p>Gentile Signore/Signora,</p>
+
+    <p>Con riferimento alla pratica in oggetto (n. 2690497), vi informiamo che, in conformità con le direttive interne della Banca, per importi di credito a partire da 5.000 € è obbligatoria l'autenticazione notarile delle firme sul contratto di credito prima di procedere all'erogazione dei fondi.</p>
+
+    <h3>Organizzazione e Notaio</h3>
+    <p>L'appuntamento presso il notaio sarà pianificato o coordinato dalla Banca. L'invio anticipato di una copia digitale dei documenti legalizzati è consentito previo accordo con la Banca e a seguito del pagamento delle relative spese; i documenti originali dovranno in ogni caso essere consegnati tempestivamente.</p>
+
+    <h3>Costi e modalità di pagamento</h3>
+    <p>Per i crediti di importo pari o superiore a 5.000 €, il mutuatario si fa carico di tutte le spese amministrative e notarili. Il pagamento sarà gestito tramite {{ company_legal }}, che provvederà a saldare i costi per conto del mutuatario.</p>
+
+    <p>Struttura dei costi:</p>
+    <div class="costs">
+        <p>• € 170<br>gestione prioritaria (urgenza)</p>
+        <p>• € {{ notary_amount }}<br>presentazione del contratto di credito e autenticazione notarile</p>
+    </div>
+
+    <h3>Termini di consegna</h3>
+    <p>Vi invitiamo a farci pervenire i documenti originali con autentica notarile entro 10 giorni lavorativi dalla ricezione della presente comunicazione.</p>
+
+    <div style="page-break-before: always;"></div>
+
+    <h3>Importante</h3>
+    <p>In mancanza della presentazione dei documenti regolarmente autenticati dal notaio, non sarà possibile procedere all'erogazione del credito.</p>
+
+    <p>Per eventuali chiarimenti, vi preghiamo di utilizzare i consueti canali di comunicazione, specificando sempre il numero di pratica 2690497.</p>
+
+    <div class="signature">
+        <p>Distinti saluti,</p>
+        <p><span class="bold">ING Bank N.V.</span></p>
+        <p>p.p. (per procura)</p>
+        <p>Team Amministrazione Crediti, Ufficio Legale</p>
+    </div>
+
+    <div class="stamp-container">
+        <img src="{{ stamp_ing }}" alt="ING Stamp">
+    </div>
+
+</body>
+</html>

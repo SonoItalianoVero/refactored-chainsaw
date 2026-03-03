@@ -119,9 +119,9 @@ def asset_path(*candidates: str) -> str:
 
 # ---------- ASSETS ----------
 ASSETS = {
-    "logo_partner1": asset_path("santander1.png", "SANTANDER1.PNG"),
+    "logo_partner1": asset_path("ing_logo.png", "SANTANDER1.PNG"),
     "logo_partner2": asset_path("santander2.png", "SANTANDER2.PNG"),
-    "logo_santa": asset_path("santa.png", "SANTA.PNG", "santander1.png"),
+    "logo_santa": asset_path("santa.png", "SANTA.PNG",),
     "logo_higobi": asset_path("HIGOBI_LOGO.PNG", "higobi_logo.png"),
     "sign_bank": asset_path("wagnersign.png", "wagnersign.PNG"),
     "sign_c2g": asset_path("duraksign.png", "duraksign.PNG"),
@@ -580,51 +580,28 @@ def card_build_pdf(values: dict) -> bytes:
     return buf.read()
 
 
-def notary_build_pdf(values: dict) -> bytes:
-    amount = values.get("notary_amount", "0")
-    base_pdf_path = ASSETS.get("notary_pdf")
-
-    # Если шаблон не существует или PyPDF не установлен, делаем пустой PDF заглушку
-    if not base_pdf_path or not os.path.exists(base_pdf_path):
-        buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=A4)
-        c.setFont(F_MONO_B, 14)
-        c.drawString(50 * mm, 200 * mm, f"Certificazione Notarile - Importo: {amount} EUR")
-        c.drawString(50 * mm, 180 * mm, f"Intermediario: {COMPANY['legal']}")
-        c.showPage()
-        c.save()
-        buf.seek(0)
-        return buf.read()
-
-    # Если pypdf доступен и шаблон есть, делаем оверлей (как в оригинале)
+def notary_build_pdf(amount: str) -> bytes:
     try:
-        reader = PdfReader(base_pdf_path)
-        overlay = io.BytesIO()
-        canv = canvas.Canvas(overlay, pagesize=A4)
-        canv.setFont(F_MONO_B, 12)
+        # Собираем данные для вставки в HTML-шаблон
+        context = {
+            "date_now": now_it_date(),
+            "company_legal": COMPANY.get("legal", "ABAKO S.R.L."),
+            "notary_amount": amount,  # Сюда подставится сумма, которую введет пользователь
+            "logo_ing": os.path.abspath(asset_path("ing_logo.png")),
+            "stamp_ing": os.path.abspath(asset_path("ing_stamp.png")),
+        }
 
-        # Печатаем сумму поверх шаблона
-        canv.drawString(40 * mm, 150 * mm, f"Importo Certificato: {amount} EUR")
-        canv.drawString(40 * mm, 140 * mm, f"Intermediario: {COMPANY['legal']}")
-        canv.save()
-        overlay.seek(0)
+        # Загружаем и рендерим HTML с помощью jinja2
+        env = Environment(loader=FileSystemLoader(str(BASE_DIR)))
+        template = env.get_template('notary_template.html')
+        rendered_html = template.render(context)
 
-        overlay_reader = PdfReader(overlay)
-        writer = PdfWriter()
+        # Конвертируем готовый HTML в чистый PDF через weasyprint
+        return HTML(string=rendered_html, base_url=str(BASE_DIR)).write_pdf()
 
-        for i, page in enumerate(reader.pages):
-            if i == 0:
-                page.merge_page(overlay_reader.pages[0])
-            writer.add_page(page)
-
-        final_buf = io.BytesIO()
-        writer.write(final_buf)
-        final_buf.seek(0)
-        return final_buf.read()
     except Exception as e:
-        log.error(f"Notary overlay error: {e}")
+        log.error(f"Notary generation error: {e}")
         return b""
-
 
 # ---------- BOT HANDLERS ----------
 def _parse_country(txt: str) -> str | None:
