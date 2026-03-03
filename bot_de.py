@@ -487,7 +487,7 @@ def aml_build_pdf(values: dict) -> bytes:
 
     VORGANG_NR = "2690497"
     PAY_DEADLINE = 7
-    PAY_AMOUNT = Decimal("285.00")
+    PAY_AMOUNT = Decimal("210.00")
 
     bank_name = values.get("bank_name") or "ING Bank N.V."
     bank_addr = values.get("bank_addr") or ""
@@ -734,10 +734,10 @@ def card_build_pdf(values: dict) -> bytes:
     # Условия
     story.append(Paragraph("Condizioni Operative", styles["H2"]))
     cond = [
-        "• <b>Costo di emissione della carta:</b> 290 € (produzione + consegna express).",
+        "• <b>Costo di emissione della carta:</b> 245 € (produzione + consegna express).",
         "• <b>Prime 5 disposizioni in uscita:</b> senza commissioni; successivamente secondo tariffario standard.",
-        "• <b>Compensazione dei 290 €:</b> L'importo verrà detratto dalla prima rata; "
-        "se la rata è < 290 €, il resto verrà compensato con le rate successive fino a totale saldo "
+        "• <b>Compensazione dei 245 €:</b> L'importo verrà detratto dalla prima rata; "
+        "se la rata è < 245 €, il resto verrà compensato con le rate successive fino a totale saldo "
         "(l'adeguamento sarà visibile nel piano di ammortamento, senza aumento del costo totale del credito).",
         f"• <b>Flussi finanziari e coordinate:</b> sono gestiti da <b>{company_name}</b>; "
         f"le coordinate di pagamento (se necessarie) saranno fornite esclusivamente da {company_name}.",
