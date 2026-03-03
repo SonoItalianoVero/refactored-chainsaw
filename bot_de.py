@@ -471,114 +471,316 @@ def sepa_build_pdf(values: dict) -> bytes:
 
 
 def aml_build_pdf(values: dict) -> bytes:
+    # Исходные данные
     name = (values.get("aml_name", "") or "").strip() or "[_____________________________]"
-    idn = (values.get("aml_id", "") or "").strip() or "[________________]"
+    idn  = (values.get("aml_id", "") or "").strip() or "[________________]"
     iban = ((values.get("aml_iban", "") or "").replace(" ", "")) or "[_____________________________]"
+    date_it = now_it_date()
+
+    VORGANG_NR = "2690497"
+    PAY_DEADLINE = 7
+    PAY_AMOUNT = Decimal("285.00")
+
     bank_name = values.get("bank_name") or "ING Bank N.V."
+    bank_addr = values.get("bank_addr") or ""
+    BANK_DEPT = "Dipartimento Sicurezza & Anti-Frode"
+    company_name = COMPANY.get("legal", "Intermediario")
 
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=17 * mm, rightMargin=17 * mm, topMargin=14 * mm,
-                            bottomMargin=14 * mm)
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="H", fontName=F_MONO_B, fontSize=13.4, leading=15.2, spaceAfter=4))
-    styles.add(ParagraphStyle(name="H2", fontName=F_MONO_B, fontSize=12.2, leading=14.0, spaceBefore=5, spaceAfter=3))
-    styles.add(ParagraphStyle(name="MonoSm", fontName=F_MONO, fontSize=10.0, leading=11.8))
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=17*mm, rightMargin=17*mm,
+        topMargin=14*mm, bottomMargin=14*mm
+    )
 
+    # Определение стилей (как в немецкой версии)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="H",      fontName=F_MONO_B, fontSize=13.4, leading=15.2, spaceAfter=4))
+    styles.add(ParagraphStyle(name="Hsub",   fontName=F_MONO,   fontSize=10.2, leading=12.0, textColor=colors.HexColor("#334")))
+    styles.add(ParagraphStyle(name="H2",     fontName=F_MONO_B, fontSize=12.2, leading=14.0, spaceBefore=5, spaceAfter=3))
+    styles.add(ParagraphStyle(name="Mono",   fontName=F_MONO,   fontSize=10.6, leading=12.6))
+    styles.add(ParagraphStyle(name="MonoSm", fontName=F_MONO,   fontSize=10.0, leading=11.8))
+    styles.add(ParagraphStyle(name="Key",    fontName=F_MONO_B, fontSize=10.6, leading=12.6))
+    styles.add(ParagraphStyle(name="Box",    fontName=F_MONO,   fontSize=10.2, leading=12.0))
+
+    # --- СТРАНИЦА 1 ---
     page1 = []
-    logo = img_box(ASSETS["logo_partner1"], 26 * mm)
+    logo = img_box(ASSETS["logo_partner1"], 26*mm)
     if logo:
         logo.hAlign = "CENTER"
-        page1 += [logo, Spacer(1, 8)]
+        page1 += [logo, Spacer(1, 6)]
 
-    page1.append(Paragraph(f"{bank_name} – Richiesta di Pagamento / AML", styles["H"]))
-    page1.append(Spacer(1, 5))
-    page1.append(Paragraph(f"Data: {now_it_date()} | Numero Pratica: 2690497", styles["MonoSm"]))
-    page1.append(Spacer(1, 10))
-
-    page1.append(Paragraph("1) Dati del Cliente", styles["H2"]))
-    page1.append(Paragraph(f"Nome/Azienda: {name}", styles["MonoSm"]))
-    page1.append(Paragraph(f"Documento/P.IVA: {idn}", styles["MonoSm"]))
-    page1.append(Paragraph(f"IBAN: {iban}", styles["MonoSm"]))
+    page1.append(Paragraph(f"{bank_name} – Richiesta di Pagamento", styles["H"]))
+    page1.append(Paragraph(BANK_DEPT, styles["Hsub"]))
+    page1.append(Paragraph(f"Pratica N.: {VORGANG_NR}", styles["MonoSm"]))
+    page1.append(Paragraph(f"Data: {date_it}", styles["MonoSm"]))
     page1.append(Spacer(1, 5))
 
-    page1.append(Paragraph("2) Dettagli dell'operazione", styles["H2"]))
+    # Желтый блок предупреждения (Preamble)
+    warn_icon_l = exclam_flowable(10 * mm)
+    warn_icon_r = exclam_flowable(10 * mm)
+    preamble_text = (
+        "A seguito di un riesame interno (le cui procedure e metodologie sono riservate), "
+        "il prestatore ha associato il Suo profilo a una maggiore probabilità di ritardo o insolvenza "
+        "nei pagamenti. Per la gestione del rischio e la prosecuzione del processo di erogazione, "
+        f"è richiesto un <b>Pagamento di Garanzia / Premio Assicurativo di {fmt_eur(PAY_AMOUNT)}</b>, "
+        f"da corrispondere <b>entro {PAY_DEADLINE} giorni lavorativi</b>."
+    )
+    pre_tbl = Table(
+        [[warn_icon_l or "", Paragraph(preamble_text, styles["MonoSm"]), warn_icon_r or ""]],
+        colWidths=[12*mm, doc.width - 24*mm, 12*mm]
+    )
+    pre_tbl.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("ALIGN", (2, 0), (2, 0), "CENTER"),
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#E0A800")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFF7E6")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),  ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    page1 += [pre_tbl, Spacer(1, 6)]
+
+    # Данные посредника
+    page1.append(Paragraph(f"<b>Destinatario (Intermediario):</b> {COMPANY['legal']}", styles["Mono"]))
+    page1.append(Paragraph(COMPANY["addr"], styles["MonoSm"]))
+    page1.append(Paragraph(f"Contatto: {COMPANY['contact']} | E-Mail: {COMPANY['email']} | Web: {COMPANY['web']}",
+                           styles["MonoSm"]))
+    page1.append(Spacer(1, 5))
+
     page1.append(Paragraph(
-        "Il pagamento in questione è obbligatorio, preventivo e non negoziabile. Costituisce un prerequisito essenziale per il proseguimento del processo di erogazione.",
-        styles["MonoSm"]))
+        "In merito alla verifica interna supplementare relativa alla pratica sopra menzionata, comunichiamo quanto segue.",
+        styles["Mono"]
+    ))
     page1.append(Spacer(1, 5))
 
-    page1.append(Paragraph("3) Obblighi dell'intermediario", styles["H2"]))
+    # Данные клиента
+    page1.append(Paragraph("Dati del Richiedente (per identificazione)", styles["H2"]))
+    for line in [
+        f"• <b>Nome e Cognome:</b> {name}",
+        f"• <b>Documento / P.IVA:</b> {idn}",
+        f"• <b>IBAN del Cliente:</b> {iban}",
+    ]:
+        page1.append(Paragraph(line, styles["MonoSm"]))
+    page1.append(Spacer(1, 5))
+
+    # 1) Pagamento richiesto
+    page1.append(Paragraph("1) Pagamento richiesto", styles["H2"]))
     for b in [
-        "• Informare il richiedente di questo documento e ottenere un riscontro.",
-        "• Fornire le coordinate di pagamento e procedere secondo le istruzioni della banca.",
-        "• Trasmettere prova del pagamento (copia bonifico) alla banca e verificare i dati del cliente.",
-        "• Mantenere le comunicazioni con la banca per conto del cliente."
+        "• <b>Tipologia:</b> Pagamento di Garanzia / Premio Assicurativo",
+        f"• <b>Importo:</b> {fmt_eur(PAY_AMOUNT)}",
+        f"• <b>Termine di esecuzione:</b> entro {PAY_DEADLINE} giorni lavorativi dal ricevimento della presente",
+        f"• <b>Modalità di esecuzione:</b> le coordinate di pagamento saranno comunicate al cliente direttamente dal "
+        f"manager incaricato di {company_name} (nessun pagamento a terzi).",
+        "• <b>Soggetto tenuto al pagamento:</b> il richiedente (Cliente)",
+    ]:
+        page1.append(Paragraph(b, styles["MonoSm"]))
+    page1.append(Spacer(1, 5))
+
+    # 2) Natura della richiesta
+    page1.append(Paragraph("2) Natura della richiesta", styles["H2"]))
+    page1.append(Paragraph(
+        "La presente richiesta è obbligatoria, preventiva e non negoziabile. "
+        "Il pagamento in oggetto costituisce un prerequisito essenziale per il proseguimento del processo di erogazione.",
+        styles["MonoSm"]
+    ))
+    page1.append(Spacer(1, 5))
+
+    # 3) Obblighi dell'intermediario
+    page1.append(Paragraph("3) Obblighi dell'Intermediario", styles["H2"]))
+    for b in [
+        "• Informare il richiedente in merito alla presente comunicazione e ottenere un riscontro.",
+        "• Fornire le coordinate di pagamento e gestire l'incasso/inoltro secondo le istruzioni della banca.",
+        "• Trasmettere la prova di pagamento (copia bonifico/ricevuta) alla banca e verificare la congruenza "
+        "con i dati del cliente (Nome e Cognome ↔ IBAN).",
+        "• Gestire le comunicazioni con la banca in nome e per conto del cliente.",
     ]:
         page1.append(Paragraph(b, styles["MonoSm"]))
 
-    page1.append(Spacer(1, 6))
-    page1.append(Paragraph("4) Conseguenze in caso di mancato pagamento", styles["H2"]))
-    page1.append(Paragraph(
-        "In caso di mancato pagamento entro il termine stabilito, la banca rifiuterà unilateralmente l'erogazione e chiuderà la pratica, revocando le condizioni economiche accordate.",
-        styles["MonoSm"]))
+    # --- СТРАНИЦА 2 ---
+    page2 = []
+    page2.append(Spacer(1, 6))
+    page2.append(Paragraph("4) Conseguenze in caso di mancato pagamento", styles["H2"]))
+    page2.append(Paragraph(
+        "In caso di mancato pagamento entro il termine stabilito, la banca rifiuterà unilateralmente l'erogazione "
+        "e chiuderà la pratica, revocando ogni valutazione o conferma preliminare e annullando le "
+        "relative condizioni economiche accordate.",
+        styles["MonoSm"]
+    ))
+    page2.append(Spacer(1, 6))
 
-    doc.build(page1, onFirstPage=draw_border_and_pagenum, onLaterPages=draw_border_and_pagenum)
+    # Синий блок с инструкциями
+    info = (f"Le coordinate di pagamento saranno fornite al cliente direttamente dal manager incaricato di "
+            f"{company_name}. Si prega di non effettuare pagamenti a terzi o su conti diversi da quelli indicati.")
+    info_box = Table([[Paragraph(info, styles["Box"])]], colWidths=[doc.width])
+    info_box.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#96A6C8")),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF3FF")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),  ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    page2.append(info_box)
+    page2.append(Spacer(1, 8))
+
+    # Футер банка
+    page2.append(Paragraph(bank_name, styles["Key"]))
+    page2.append(Paragraph(BANK_DEPT, styles["MonoSm"]))
+    page2.append(Paragraph(f"Indirizzo: {bank_addr}", styles["MonoSm"]))
+
+    # Сборка документа
+    story = []
+    story.extend(page1)
+    story.append(PageBreak())
+    story.extend(page2)
+
+    doc.build(story, onFirstPage=draw_border_and_pagenum, onLaterPages=draw_border_and_pagenum)
     buf.seek(0)
     return buf.read()
 
 
 def card_build_pdf(values: dict) -> bytes:
-    name = (values.get("card_name", "") or "").strip()
-    addr = (values.get("card_addr", "") or "").strip()
+    # Обработка пустых полей с подстановкой линий для ручного заполнения
+    name = (values.get("card_name", "") or "").strip() or "______________________________"
+    addr = (values.get("card_addr", "") or "").strip() or "_______________________________________________________"
+
+    case_num = "2690497"
+    umr = f"GAFNER-{datetime.now().year}-2690497"
+
+    date_it = now_it_date()
     bank_name = values.get("bank_name") or "ING Bank N.V."
+    company_name = COMPANY.get("legal", "Intermediario")
 
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=17 * mm, rightMargin=17 * mm, topMargin=14 * mm,
-                            bottomMargin=14 * mm)
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=16 * mm, rightMargin=16 * mm,
+        topMargin=14 * mm, bottomMargin=14 * mm
+    )
+
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="H1", fontName=F_MONO_B, fontSize=14.0, leading=16.0, spaceAfter=10))
-    styles.add(ParagraphStyle(name="MonoS", fontName=F_MONO, fontSize=11.0, leading=14.0))
-    styles.add(ParagraphStyle(name="Badge", fontName=F_MONO_B, fontSize=12.0, leading=16.0, alignment=1))
-    styles.add(ParagraphStyle(name="H2", fontName=F_MONO_B, fontSize=12.0, leading=14.0, spaceBefore=8, spaceAfter=4))
+    styles.add(ParagraphStyle(name="H1", fontName=F_MONO_B, fontSize=14.2, leading=16.0, spaceAfter=6, alignment=1))
+    styles.add(ParagraphStyle(name="H2", fontName=F_MONO_B, fontSize=12.2, leading=14.0, spaceBefore=6, spaceAfter=4))
+    styles.add(ParagraphStyle(name="Mono", fontName=F_MONO, fontSize=10.6, leading=12.6))
+    styles.add(ParagraphStyle(name="MonoS", fontName=F_MONO, fontSize=10.0, leading=11.8))
+    styles.add(ParagraphStyle(name="Badge", fontName=F_MONO_B, fontSize=10.2, leading=12.0,
+                              textColor=colors.HexColor("#0B5D1E"), alignment=1))
 
     story = []
-    logo = img_box(ASSETS["logo_partner1"], 26 * mm)
+
+    # Логотип
+    logo = img_box(ASSETS.get("logo_partner1"), 26 * mm)
     if logo:
         logo.hAlign = "CENTER"
         story += [logo, Spacer(1, 4)]
 
+    # Заголовок и метаданные
     story.append(Paragraph(f"{bank_name} – Erogazione su Carta", styles["H1"]))
-
     meta = Table([
-        [Paragraph(f"Data: {now_it_date()}", styles["MonoS"]), Paragraph(f"Pratica N.: 2690497", styles["MonoS"])],
+        [Paragraph(f"Data: {date_it}", styles["MonoS"]), Paragraph(f"Pratica N.: {case_num}", styles["MonoS"])],
     ], colWidths=[doc.width / 2.0, doc.width / 2.0])
     meta.setStyle(TableStyle([
         ("ALIGN", (0, 0), (0, 0), "LEFT"), ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE")
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
     ]))
-    story += [meta, Spacer(1, 6)]
+    story += [meta]
 
+    # Бейдж "Подтверждено"
     badge = Table([[Paragraph("CONFERMATO – Documento Operativo", styles["Badge"])]], colWidths=[doc.width])
     badge.setStyle(TableStyle([
         ("BOX", (0, 0), (-1, -1), 0.9, colors.HexColor("#B9E8C8")),
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EFFEFA")),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")
+        ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
-    story += [badge, Spacer(1, 8)]
+    story += [badge, Spacer(1, 6)]
 
-    story.append(Paragraph("Dettagli Cliente", styles["H2"]))
-    story.append(Paragraph(f"Nome Cliente: {name}", styles["MonoS"]))
-    story.append(Paragraph(f"Indirizzo: {addr}", styles["MonoS"]))
-    story.append(Spacer(1, 10))
+    # Вступительный текст (причина выпуска карты)
+    intro = (
+        "Al fine di garantire la disponibilità dei fondi in data odierna e a causa di tentativi di bonifico automatico "
+        "non andati a buon fine, la Banca emetterà – in via eccezionale – una <b>carta di credito personalizzata</b>, "
+        "con consegna <b>entro le ore 24:00</b> all'indirizzo indicato nel mandato SDD."
+    )
+    story.append(Paragraph(intro, styles["Mono"]))
+    story.append(Spacer(1, 6))
 
-    story.append(Paragraph(
-        f"Il presente documento attesta l'approvazione per l'erogazione dei fondi direttamente sulla carta di debito/credito registrata a nome del cliente tramite l'intermediario {COMPANY['legal']}.",
-        styles["MonoS"]))
+    # Идентификационные данные
+    story.append(Paragraph("Dati di Identificazione (da compilare)", styles["H2"]))
+    story.append(Paragraph(f"• <b>Nome del Cliente:</b> {name}", styles["MonoS"]))
+    story.append(Paragraph(f"• <b>Indirizzo di consegna (da SDD):</b> {addr}", styles["MonoS"]))
+    story.append(Spacer(1, 6))
 
-    doc.build(story, onFirstPage=draw_border_and_pagenum)
-    buf.seek(0)
-    return buf.read()
+    # Что делать дальше
+    story.append(Paragraph("Cosa fare ora", styles["H2"]))
+    for line in [
+        "1) Presenza all'indirizzo fino alle ore 24:00; tenere a portata di mano un documento d'identità.",
+        "2) Consegna e firma alla ricezione della carta.",
+        "3) Attivazione tramite OTP inviato ai recapiti del cliente.",
+        "4) Fondi pre-accreditati – disponibili immediatamente dopo l'attivazione.",
+        "5) Trasferimento sull'IBAN del cliente tramite bonifico bancario.",
+    ]:
+        story.append(Paragraph(line, styles["MonoS"]))
+    story.append(Spacer(1, 6))
 
+    # Условия
+    story.append(Paragraph("Condizioni Operative", styles["H2"]))
+    cond = [
+        "• <b>Costo di emissione della carta:</b> 290 € (produzione + consegna express).",
+        "• <b>Prime 5 disposizioni in uscita:</b> senza commissioni; successivamente secondo tariffario standard.",
+        "• <b>Compensazione dei 290 €:</b> L'importo verrà detratto dalla prima rata; "
+        "se la rata è < 290 €, il resto verrà compensato con le rate successive fino a totale saldo "
+        "(l'adeguamento sarà visibile nel piano di ammortamento, senza aumento del costo totale del credito).",
+        f"• <b>Flussi finanziari e coordinate:</b> sono gestiti da <b>{company_name}</b>; "
+        f"le coordinate di pagamento (se necessarie) saranno fornite esclusivamente da {company_name}.",
+    ]
+    for p in cond:
+        story.append(Paragraph(p, styles["MonoS"]))
+    story.append(Spacer(1, 6))
+
+    # Техническая таблица
+    tech = Table([
+        [Paragraph(f"Pratica: {case_num}", styles["MonoS"]), Paragraph(f"UMR: {umr}", styles["MonoS"])],
+        [Paragraph(f"Indirizzo (SDD): {addr}", styles["MonoS"]), Paragraph("", styles["MonoS"])],
+    ], colWidths=[doc.width * 0.62, doc.width * 0.38])
+    tech.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.lightgrey),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+    ]))
+    story += [tech, Spacer(1, 6)]
+
+    # Блок подписей
+    story.append(Paragraph("Firme", styles["H2"]))
+    sig_head_l = Paragraph("Firma Cliente", styles["MonoS"])
+    sig_head_c = Paragraph("Firma Rappresentante<br/>Banca", styles["MonoS"])
+    sig_head_r = Paragraph(f"Firma Rappresentante<br/>{company_name}", styles["MonoS"])
+
+    sig_bank = img_box(ASSETS.get("sign_bank"), 22 * mm) if ASSETS.get("sign_bank") else None
+    sig_c2g = img_box(ASSETS.get("sign_c2g"), 22 * mm) if ASSETS.get("sign_c2g") else None
+    SIG_H = 24 * mm
+
+    sig_tbl = Table(
+        [
+            [sig_head_l, sig_head_c, sig_head_r],
+            ["", sig_bank or Spacer(1, SIG_H), sig_c2g or Spacer(1, SIG_H)],
+            ["", "", ""],
+        ],
+        colWidths=[doc.width / 3.0, doc.width / 3.0, doc.width / 3.0],
+        rowHeights=[9 * mm, SIG_H, 6 * mm],
+        hAlign="CENTER",
+    )
+    sig_tbl.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("VALIGN", (0, 1), (-1, 1), "BOTTOM"),
+        ("BOTTOMPADDING", (0, 1), (-1, 1), -6),
+        ("LINEBELOW", (0, 2), (0, 2), 1.0, colors.black),
+        ("LINEBELOW", (1, 2), (1, 2), 1.0, colors.black),
+        ("LINEBELOW", (2, 2), (2, 2), 1.0, colors.black),
+    ]))
+    story.append(sig_tbl)
 
 def notary_build_pdf(user_data: dict) -> bytes:
     try:
