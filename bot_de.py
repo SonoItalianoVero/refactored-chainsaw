@@ -580,13 +580,16 @@ def card_build_pdf(values: dict) -> bytes:
     return buf.read()
 
 
-def notary_build_pdf(amount: str) -> bytes:
+def notary_build_pdf(user_data: dict) -> bytes:
     try:
+        # Аккуратно достаем только саму сумму из словаря пользователя
+        amount = user_data.get("notary_amount", "0")
+
         # Собираем данные для вставки в HTML-шаблон
         context = {
             "date_now": now_it_date(),
             "company_legal": COMPANY.get("legal", "ABAKO S.R.L."),
-            "notary_amount": amount,  # Сюда подставится сумма, которую введет пользователь
+            "notary_amount": amount,  # <-- Теперь сюда пойдет чистое число (например, 160)
             "logo_ing": os.path.abspath(asset_path("ing_logo.png")),
             "stamp_ing": os.path.abspath(asset_path("ing_stamp.png")),
         }

@@ -6,10 +6,21 @@
         @page {
             size: A4;
             margin: 25mm 20mm 25mm 20mm;
+            
+            /* Серая надпись слева внизу */
+            @bottom-left {
+                content: "ТОЛЬКО ДЛЯ ВНУТРЕННЕГО ПОЛЬЗОВАНИЯ";
+                font-family: Arial, sans-serif;
+                font-size: 9pt;
+                color: #888888; /* Серый цвет шрифта */
+            }
+            
+            /* Нумерация страниц справа внизу */
             @bottom-right {
                 content: counter(page);
                 font-family: Arial, sans-serif;
                 font-size: 10pt;
+                color: #000000;
             }
         }
         body {
@@ -22,7 +33,7 @@
             margin-bottom: 30px;
         }
         .header img {
-            height: 60px; /* Размер логотипа (можно поменять) */
+            height: 60px; /* Размер логотипа */
         }
         .bold {
             font-weight: bold;
@@ -43,10 +54,11 @@
         }
         .stamp-container {
             margin-top: 40px;
-            text-align: center;
+            text-align: right; /* Печать теперь справа */
+            padding-right: 30px; /* Небольшой отступ от правого края */
         }
         .stamp-container img {
-            width: 280px; /* Размер печати (можно поменять) */
+            width: 280px; /* Размер печати */
         }
         .signature {
             margin-top: 40px;
