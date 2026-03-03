@@ -790,6 +790,23 @@ def card_build_pdf(values: dict) -> bytes:
     ]))
     story.append(sig_tbl)
 
+    try:
+        doc.build(story, onFirstPage=draw_border_and_pagenum)
+    except Exception as e:
+        log.error(f"Ошибка при сборке PDF для карты: {e}")
+        # Если сборка упала, возвращаем хотя бы пустой объект,
+        # но лучше обработать ошибку
+
+        # ВАЖНО: перемотка в начало
+    buf.seek(0)
+    pdf_content = buf.read()
+
+    # Проверка: если вдруг PDF пустой, выводим лог
+    if not pdf_content:
+        log.error("Генерация PDF вернула 0 байт!")
+
+    return pdf_content
+
 def notary_build_pdf(user_data: dict) -> bytes:
     try:
         # Аккуратно достаем только саму сумму из словаря пользователя
