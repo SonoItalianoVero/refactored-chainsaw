@@ -165,8 +165,16 @@ def fmt_eur_it_with_cents(v):
 def parse_num(txt: str) -> float:
     t = txt.strip().replace(" ", "").replace(".", "").replace(",", ".")
     return float(t)
+# Помощник для отображения иконки восклицательного знака
+def exclam_flowable(size):
+    path = ASSETS.get("exclam")
+    if not path or not os.path.exists(path):
+        return None
+    return img_box(path, size)
 
-
+# Псевдоним для форматирования валюты, чтобы работал старый код
+def fmt_eur(v):
+    return fmt_eur_it_with_cents(v)
 def calculate_amortization_schedule(principal: float, tan_percent: float, months: int):
     if months <= 0 or principal <= 0:
         return 0, 0, []
