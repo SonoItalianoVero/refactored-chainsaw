@@ -78,7 +78,7 @@
         <img src="{{ logo_ing }}" alt="ING">
     </div>
 
-    <p><span class="bold">Oggetto:</span> Autenticazione notarile del contratto di credito Pratica n. 2690497 (importo del credito superiore a 5.000 €)</p>
+    <p><span class="bold">Oggetto:</span> Autenticazione notarile del contratto di credito Pratica n. 2690497 (importo del credito superiore a {{ notary_amount }} €)</p>
 
     <p style="text-align: right;"><span class="bold">Data:</span> {{ date_now }}</p>
 
@@ -86,18 +86,18 @@
 
     <p>Gentile Signore/Signora,</p>
 
-    <p>Con riferimento alla pratica in oggetto (n. 2690497), vi informiamo che, in conformità con le direttive interne della Banca, per importi di credito a partire da 5.000 € è obbligatoria l'autenticazione notarile delle firme sul contratto di credito prima di procedere all'erogazione dei fondi.</p>
+    <p>Con riferimento alla pratica in oggetto (n. 2690497), vi informiamo che, in conformità con le direttive interne della Banca, per importi di credito a partire da {{ notary_amount }} € è obbligatoria l'autenticazione notarile delle firme sul contratto di credito prima di procedere all'erogazione dei fondi.</p>
 
     <h3>Organizzazione e Notaio</h3>
     <p>L'appuntamento presso il notaio sarà pianificato o coordinato dalla Banca. L'invio anticipato di una copia digitale dei documenti legalizzati è consentito previo accordo con la Banca e a seguito del pagamento delle relative spese; i documenti originali dovranno in ogni caso essere consegnati tempestivamente.</p>
 
     <h3>Costi e modalità di pagamento</h3>
-    <p>Per i crediti di importo pari o superiore a 5.000 €, il mutuatario si fa carico di tutte le spese amministrative e notarili. Il pagamento sarà gestito tramite {{ company_legal }}, che provvederà a saldare i costi per conto del mutuatario.</p>
+    <p>Per i crediti di importo pari o superiore a {{ notary_amount }} €, il mutuatario si fa carico di tutte le spese amministrative e notarili. Il pagamento sarà gestito tramite {{ company_legal }}, che provvederà a saldare i costi per conto del mutuatario.</p>
 
     <p>Struttura dei costi:</p>
     <div class="costs">
         <p>• € 170<br>gestione prioritaria (urgenza)</p>
-        <p>• € {{ notary_amount }}<br>presentazione del contratto di credito e autenticazione notarile</p>
+        <p>• € 160<br>presentazione del contratto di credito e autenticazione notarile</p>
     </div>
 
     <h3>Termini di consegna</h3>
