@@ -652,7 +652,7 @@ def card_build_pdf(values: dict) -> bytes:
     addr = (values.get("card_addr", "") or "").strip() or "_______________________________________________________"
 
     case_num = "2690497"
-    umr = f"GAFNER-{datetime.now().year}-2690497"
+    umr = f"ABAKO-{datetime.now().year}-2690497"
 
     date_it = now_it_date()
     bank_name = values.get("bank_name") or "ING Bank N.V."
