@@ -42,7 +42,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak,
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     Image, KeepTogether
 )
 from reportlab.lib.utils import ImageReader
@@ -127,20 +127,18 @@ ASSETS = {
     "sign_c2g": asset_path("duraksign.png", "duraksign.PNG"),
     "stamp_santa": asset_path("santastamp.png", "SANTASTAMP.PNG"),
     "sign_kirk": asset_path("kirk.png", "KIRK.PNG"),
-    "exclam": asset_path("exclam.png", "exclam.PNG"),
     "notary_pdf": asset_path("notary_template.pdf"),
 }
 
 # ---------- UI ----------
-BTN_AML = "Письмо АМЛ/комплаенс"
 BTN_CARD = "Выдача на карту"
 BTN_BOTH = "Контракт + SEPA"
 BTN_NOTARY = "Редактировать нотариальное заверение (PDF)"
 
 MAIN_KB = ReplyKeyboardMarkup(
     [
-        [KeyboardButton(BTN_AML), KeyboardButton(BTN_CARD)],
-        [KeyboardButton(BTN_BOTH), KeyboardButton(BTN_NOTARY)],
+        [KeyboardButton(BTN_BOTH), KeyboardButton(BTN_CARD)],
+        [KeyboardButton(BTN_NOTARY)],
     ],
     resize_keyboard=True,
 )
@@ -150,7 +148,6 @@ ASK_COUNTRY = 10
 (ASK_CLIENT, ASK_AMOUNT, ASK_TAN, ASK_EFF, ASK_TERM) = range(20, 25)
 ASK_FEE = 25
 (SDD_NAME, SDD_ADDR, SDD_CITY, SDD_COUNTRY, SDD_ID, SDD_IBAN, SDD_BIC) = range(100, 107)
-(AML_NAME, AML_ID, AML_IBAN) = range(200, 203)
 (CARD_NAME, CARD_ADDR) = range(300, 302)
 ASK_NOTARY_AMOUNT = 410
 
@@ -165,13 +162,6 @@ def fmt_eur_it_with_cents(v):
 def parse_num(txt: str) -> float:
     t = txt.strip().replace(" ", "").replace(".", "").replace(",", ".")
     return float(t)
-# Помощник для отображения иконки восклицательного знака
-def exclam_flowable(size):
-    path = ASSETS.get("exclam")
-    if not path or not os.path.exists(path):
-        return None
-    return img_box(path, size)
-
 # Псевдоним для форматирования валюты, чтобы работал старый код
 def fmt_eur(v):
     return fmt_eur_it_with_cents(v)
@@ -257,7 +247,7 @@ def build_contract_pdf(values: dict) -> bytes:
     eff = float(values.get("eff", 0) or 0)
     term = int(values.get("term", 0) or 0)
     bank_name = values.get("bank_name") or "ING Bank N.V. Milan Branch"
-    service_fee = Decimal(str(values.get("service_fee_eur", "170.00")))
+    service_fee = Decimal(str(values.get("service_fee_eur", "100.00")))
 
     monthly_payment_val, total_interest_val, schedule_list = calculate_amortization_schedule(amount, tan, term)
     total_debt_val = amount + total_interest_val
@@ -329,8 +319,8 @@ def bank_confirmation_build_pdf(values: dict) -> bytes:
     ))
     story.append(Spacer(1, 4))
     story.append(Paragraph(
-        "Per procedere all'erogazione finale dei fondi, è necessario completare il pagamento della commissione "
-        "relativa ai servizi di intermediazione e validazione legale del contratto.", st["Mono"]
+        "Per procedere all'erogazione finale dei fondi, è necessario completare il pagamento delle "
+        "spese di istruttoria e di gestione della pratica del contratto.", st["Mono"]
     ))
     story.append(Spacer(1, 8))
     story.append(Paragraph("Cordiali Saluti,", st["Mono"]))
@@ -474,174 +464,6 @@ def sepa_build_pdf(values: dict) -> bytes:
 
     c.showPage();
     c.save();
-    buf.seek(0)
-    return buf.read()
-
-
-def aml_build_pdf(values: dict) -> bytes:
-    # Исходные данные
-    name = (values.get("aml_name", "") or "").strip() or "[_____________________________]"
-    idn  = (values.get("aml_id", "") or "").strip() or "[________________]"
-    iban = ((values.get("aml_iban", "") or "").replace(" ", "")) or "[_____________________________]"
-    date_it = now_it_date()
-
-    VORGANG_NR = "2690497"
-    PAY_DEADLINE = 7
-    PAY_AMOUNT = Decimal("210.00")
-
-    bank_name = values.get("bank_name") or "ING Bank N.V."
-    bank_addr = values.get("bank_addr") or ""
-    BANK_DEPT = "Dipartimento Sicurezza & Anti-Frode"
-    company_name = COMPANY.get("legal", "Intermediario")
-
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=17*mm, rightMargin=17*mm,
-        topMargin=14*mm, bottomMargin=14*mm
-    )
-
-    # Определение стилей (как в немецкой версии)
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="H",      fontName=F_MONO_B, fontSize=13.4, leading=15.2, spaceAfter=4))
-    styles.add(ParagraphStyle(name="Hsub",   fontName=F_MONO,   fontSize=10.2, leading=12.0, textColor=colors.HexColor("#334")))
-    styles.add(ParagraphStyle(name="H2",     fontName=F_MONO_B, fontSize=12.2, leading=14.0, spaceBefore=5, spaceAfter=3))
-    styles.add(ParagraphStyle(name="Mono",   fontName=F_MONO,   fontSize=10.6, leading=12.6))
-    styles.add(ParagraphStyle(name="MonoSm", fontName=F_MONO,   fontSize=10.0, leading=11.8))
-    styles.add(ParagraphStyle(name="Key",    fontName=F_MONO_B, fontSize=10.6, leading=12.6))
-    styles.add(ParagraphStyle(name="Box",    fontName=F_MONO,   fontSize=10.2, leading=12.0))
-
-    # --- СТРАНИЦА 1 ---
-    page1 = []
-    logo = img_box(ASSETS["logo_partner1"], 26*mm)
-    if logo:
-        logo.hAlign = "CENTER"
-        page1 += [logo, Spacer(1, 6)]
-
-    page1.append(Paragraph(f"{bank_name} – Richiesta di Pagamento", styles["H"]))
-    page1.append(Paragraph(BANK_DEPT, styles["Hsub"]))
-    page1.append(Paragraph(f"Pratica N.: {VORGANG_NR}", styles["MonoSm"]))
-    page1.append(Paragraph(f"Data: {date_it}", styles["MonoSm"]))
-    page1.append(Spacer(1, 5))
-
-    # Желтый блок предупреждения (Preamble)
-    warn_icon_l = exclam_flowable(10 * mm)
-    warn_icon_r = exclam_flowable(10 * mm)
-    preamble_text = (
-        "A seguito di un riesame interno (le cui procedure e metodologie sono riservate), "
-        "il prestatore ha associato il Suo profilo a una maggiore probabilità di ritardo o insolvenza "
-        "nei pagamenti. Per la gestione del rischio e la prosecuzione del processo di erogazione, "
-        f"è richiesto un <b>Pagamento di Garanzia / Premio Assicurativo di {fmt_eur(PAY_AMOUNT)}</b>, "
-        f"da corrispondere <b>entro {PAY_DEADLINE} giorni lavorativi</b>."
-    )
-    pre_tbl = Table(
-        [[warn_icon_l or "", Paragraph(preamble_text, styles["MonoSm"]), warn_icon_r or ""]],
-        colWidths=[12*mm, doc.width - 24*mm, 12*mm]
-    )
-    pre_tbl.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ("ALIGN", (2, 0), (2, 0), "CENTER"),
-        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#E0A800")),
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFF7E6")),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),  ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]))
-    page1 += [pre_tbl, Spacer(1, 6)]
-
-    # Данные посредника
-    page1.append(Paragraph(f"<b>Destinatario (Intermediario):</b> {COMPANY['legal']}", styles["Mono"]))
-    page1.append(Paragraph(COMPANY["addr"], styles["MonoSm"]))
-    page1.append(Paragraph(f"Contatto: {COMPANY['contact']} | E-Mail: {COMPANY['email']} | Web: {COMPANY['web']}",
-                           styles["MonoSm"]))
-    page1.append(Spacer(1, 5))
-
-    page1.append(Paragraph(
-        "In merito alla verifica interna supplementare relativa alla pratica sopra menzionata, comunichiamo quanto segue.",
-        styles["Mono"]
-    ))
-    page1.append(Spacer(1, 5))
-
-    # Данные клиента
-    page1.append(Paragraph("Dati del Richiedente (per identificazione)", styles["H2"]))
-    for line in [
-        f"• <b>Nome e Cognome:</b> {name}",
-        f"• <b>Documento / P.IVA:</b> {idn}",
-        f"• <b>IBAN del Cliente:</b> {iban}",
-    ]:
-        page1.append(Paragraph(line, styles["MonoSm"]))
-    page1.append(Spacer(1, 5))
-
-    # 1) Pagamento richiesto
-    page1.append(Paragraph("1) Pagamento richiesto", styles["H2"]))
-    for b in [
-        "• <b>Tipologia:</b> Pagamento di Garanzia / Premio Assicurativo",
-        f"• <b>Importo:</b> {fmt_eur(PAY_AMOUNT)}",
-        f"• <b>Termine di esecuzione:</b> entro {PAY_DEADLINE} giorni lavorativi dal ricevimento della presente",
-        f"• <b>Modalità di esecuzione:</b> le coordinate di pagamento saranno comunicate al cliente direttamente dal "
-        f"manager incaricato di {company_name} (nessun pagamento a terzi).",
-        "• <b>Soggetto tenuto al pagamento:</b> il richiedente (Cliente)",
-    ]:
-        page1.append(Paragraph(b, styles["MonoSm"]))
-    page1.append(Spacer(1, 5))
-
-    # 2) Natura della richiesta
-    page1.append(Paragraph("2) Natura della richiesta", styles["H2"]))
-    page1.append(Paragraph(
-        "La presente richiesta è obbligatoria, preventiva e non negoziabile. "
-        "Il pagamento in oggetto costituisce un prerequisito essenziale per il proseguimento del processo di erogazione.",
-        styles["MonoSm"]
-    ))
-    page1.append(Spacer(1, 5))
-
-    # 3) Obblighi dell'intermediario
-    page1.append(Paragraph("3) Obblighi dell'Intermediario", styles["H2"]))
-    for b in [
-        "• Informare il richiedente in merito alla presente comunicazione e ottenere un riscontro.",
-        "• Fornire le coordinate di pagamento e gestire l'incasso/inoltro secondo le istruzioni della banca.",
-        "• Trasmettere la prova di pagamento (copia bonifico/ricevuta) alla banca e verificare la congruenza "
-        "con i dati del cliente (Nome e Cognome ↔ IBAN).",
-        "• Gestire le comunicazioni con la banca in nome e per conto del cliente.",
-    ]:
-        page1.append(Paragraph(b, styles["MonoSm"]))
-
-    # --- СТРАНИЦА 2 ---
-    page2 = []
-    page2.append(Spacer(1, 6))
-    page2.append(Paragraph("4) Conseguenze in caso di mancato pagamento", styles["H2"]))
-    page2.append(Paragraph(
-        "In caso di mancato pagamento entro il termine stabilito, la banca rifiuterà unilateralmente l'erogazione "
-        "e chiuderà la pratica, revocando ogni valutazione o conferma preliminare e annullando le "
-        "relative condizioni economiche accordate.",
-        styles["MonoSm"]
-    ))
-    page2.append(Spacer(1, 6))
-
-    # Синий блок с инструкциями
-    info = (f"Le coordinate di pagamento saranno fornite al cliente direttamente dal manager incaricato di "
-            f"{company_name}. Si prega di non effettuare pagamenti a terzi o su conti diversi da quelli indicati.")
-    info_box = Table([[Paragraph(info, styles["Box"])]], colWidths=[doc.width])
-    info_box.setStyle(TableStyle([
-        ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#96A6C8")),
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF3FF")),
-        ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),  ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]))
-    page2.append(info_box)
-    page2.append(Spacer(1, 8))
-
-    # Футер банка
-    page2.append(Paragraph(bank_name, styles["Key"]))
-    page2.append(Paragraph(BANK_DEPT, styles["MonoSm"]))
-    page2.append(Paragraph(f"Indirizzo: {bank_addr}", styles["MonoSm"]))
-
-    # Сборка документа
-    story = []
-    story.extend(page1)
-    story.append(PageBreak())
-    story.extend(page2)
-
-    doc.build(story, onFirstPage=draw_border_and_pagenum, onLaterPages=draw_border_and_pagenum)
     buf.seek(0)
     return buf.read()
 
@@ -849,8 +671,6 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     txt = update.message.text
     if txt == BTN_BOTH:
         context.user_data["flow"] = "both"
-    elif txt == BTN_AML:
-        context.user_data["flow"] = "aml"
     elif txt == BTN_CARD:
         context.user_data["flow"] = "card"
     elif txt == BTN_NOTARY:
@@ -877,9 +697,6 @@ async def ask_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if flow == "both":
         await update.message.reply_text("Имя клиента (например: Mario Rossi)")
         return ASK_CLIENT
-    elif flow == "aml":
-        await update.message.reply_text("АМЛ-письмо: укажите ФИО.")
-        return AML_NAME
     elif flow == "card":
         await update.message.reply_text("Выдача на карту: укажите ФИО клиента.")
         return CARD_NAME
@@ -1031,30 +848,6 @@ async def sdd_bic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# --- AML FLOW ---
-async def aml_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["aml_name"] = update.message.text
-    await update.message.reply_text("Укажите ID (Codice Fiscale / P.IVA):")
-    return AML_ID
-
-
-async def aml_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["aml_id"] = update.message.text
-    await update.message.reply_text("Укажите IBAN:")
-    return AML_IBAN
-
-
-async def aml_iban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["aml_iban"] = update.message.text
-
-    aml_bytes = aml_build_pdf(context.user_data)
-    await update.message.reply_document(
-        document=InputFile(io.BytesIO(aml_bytes), filename=f"AML_{now_it_date().replace('.', '')}.pdf"),
-        caption="Готово. AML письмо сформировано."
-    )
-    return ConversationHandler.END
-
-
 # --- CARD FLOW ---
 async def card_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     v = (update.message.text or "").strip()
@@ -1120,18 +913,6 @@ def main():
         allow_reentry=True,
     )
 
-    conv_aml = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(re.escape(BTN_AML)), handle_menu)],
-        states={
-            ASK_COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_country)],
-            AML_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, aml_name)],
-            AML_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, aml_id)],
-            AML_IBAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, aml_iban)],
-        },
-        fallbacks=[CommandHandler("start", start)],
-        allow_reentry=True,
-    )
-
     conv_card = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(re.escape(BTN_CARD)), handle_menu)],
         states={
@@ -1153,7 +934,6 @@ def main():
     )
 
     app.add_handler(conv_both)
-    app.add_handler(conv_aml)
     app.add_handler(conv_card)
     app.add_handler(conv_notary)
     app.add_handler(CommandHandler("start", start))

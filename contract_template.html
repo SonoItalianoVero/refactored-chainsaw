@@ -80,11 +80,34 @@
         ul { margin-top: 5px; margin-bottom: 15px; padding-left: 20px; }
         li { margin-bottom: 4px; }
 
+        /* HIGHLIGHT CARDS */
+        .highlight-cards { width: 100%; border-collapse: separate; border-spacing: 15px 0; margin-left: -15px; margin-bottom: 20px; }
+        .highlight-cards td {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 15px;
+            width: 50%;
+        }
+        .card-label { font-size: 9pt; color: #64748b; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
+        .card-value { font-size: 18pt; font-weight: bold; }
+        .card-blue { border-left: 4px solid #0E2A47; }
+        .card-blue .card-value { color: #0E2A47; }
+        .card-green { border-left: 4px solid #0b5d1e; }
+        .card-green .card-value { color: #0b5d1e; }
+
+        /* CUSTOM LISTS */
+        ul.vantaggi-list, ul.sanzioni-list { list-style: none; padding-left: 0; }
+        ul.vantaggi-list li, ul.sanzioni-list li { position: relative; padding-left: 20px; margin-bottom: 8px; }
+        ul.vantaggi-list li::before { content: '✓'; position: absolute; left: 0; color: #0b5d1e; font-weight: bold; }
+        ul.sanzioni-list li::before { content: '▪'; position: absolute; left: 0; color: #d9534f; font-size: 14pt; line-height: 0.8; }
+
         /* FIRME */
         .signatures { width: 100%; margin-top: 40px; page-break-inside: avoid; }
         .signatures td { width: 33.3%; text-align: center; vertical-align: bottom; padding: 0 10px; }
-        .sig-line { border-bottom: 1px solid #000; height: 60px; margin-bottom: 5px; position: relative; }
+        .sig-line { border-bottom: 1.5px solid #0E2A47; height: 60px; margin-bottom: 5px; position: relative; }
         .sig-img { max-height: 50px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+        .sig-microtext { font-size: 7pt; color: #64748b; font-style: italic; margin-top: 3px; margin-bottom: 15px; }
 
         /* PIANO DI AMMORTAMENTO */
         .schedule-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 15px; }
@@ -122,30 +145,45 @@
 
     <div class="status-box">
         <table>
-            <tr><td>Stato della richiesta:</td><td><b>CONFERMATO</b> (Approvazione bancaria ottenuta)</td></tr>
+            <tr>
+                <td>Stato della richiesta:</td>
+                <td>
+                    <span style="display: inline-block; background-color: #0b5d1e; color: white; border-radius: 12px; padding: 2px 8px; font-size: 9pt; font-weight: bold; margin-right: 5px;">✓ CONFERMATO</span>
+                    <b>(Approvazione bancaria ottenuta)</b>
+                </td>
+            </tr>
             <tr><td>Tipo di documento:</td><td><b>Contratto confermato</b></td></tr>
-            <tr><td>In attesa di:</td><td>Firma del presente documento, pagamento della commissione di mediazione, invio del piano di ammortamento definitivo</td></tr>
-            <tr><td>Erogazione:</td><td>Solo dopo la firma del contratto e il versamento della commissione operativa unica ({{ service_fee }}).</td></tr>
+            <tr><td>In attesa di:</td><td>Firma del presente documento, pagamento delle spese di istruttoria, invio del piano di ammortamento definitivo</td></tr>
+            <tr><td>Erogazione:</td><td>Solo dopo la firma del contratto e il versamento delle spese di istruttoria e di gestione della pratica ({{ service_fee }}).</td></tr>
         </table>
     </div>
 
+    <table class="highlight-cards">
+        <tr>
+            <td class="card-blue">
+                <div class="card-label">Importo Erogato</div>
+                <div class="card-value">{{ amount }}</div>
+            </td>
+            <td class="card-green">
+                <div class="card-label">Rata Mensile</div>
+                <div class="card-value">{{ monthly_payment }}</div>
+            </td>
+        </tr>
+    </table>
+
     <table class="data-table">
         <tr><th>Parametro</th><td style="background-color: #ececec; font-weight: bold;">Dettagli</td></tr>
-        <tr><th>Importo netto del prestito</th><td><b>{{ amount }}</b></td></tr>
         <tr><th>TAN (Tasso Annuale Nominale)</th><td>{{ tan }} %</td></tr>
         <tr><th>TAEG (Tasso Annuale Effettivo Globale)</th><td>{{ eff }} %</td></tr>
         <tr><th>Durata</th><td>{{ term }} mesi (max. 84)</td></tr>
-        <tr><th>Rata mensile*</th><td><b>{{ monthly_payment }}</b></td></tr>
         <tr><th>Spese di istruttoria</th><td>0 €</td></tr>
         <tr><th>Costi di incasso rata</th><td>0 €</td></tr>
         <tr><th>Costi di gestione</th><td>0 €</td></tr>
-        <tr><th>Premio assicurativo (se richiesto)</th><td>210 €</td></tr>
-        <tr><th>Erogazione fondi</th><td>30–60 min dopo la firma e il pagamento ({{ service_fee }})</td></tr>
+        <tr><th>Erogazione fondi</th><td>30–60 min dopo la firma e l'accredito delle spese di istruttoria ({{ service_fee }})</td></tr>
     </table>
-    <div style="font-size: 8pt; margin-top: -15px; margin-bottom: 20px;">*La rata mensile è calcolata alla data della presente offerta.</div>
 
     <h2>Vantaggi</h2>
-    <ul>
+    <ul class="vantaggi-list">
         <li>Possibilità di saltare fino a 3 rate durante il periodo del prestito.</li>
         <li>Estinzione anticipata totale o parziale senza penali.</li>
         <li>Riduzione del tasso –0,10% ogni 12 mesi di pagamenti regolari (fino a un min. di 5,95%).</li>
@@ -153,7 +191,7 @@
     </ul>
 
     <h2>Sanzioni e Interessi di Mora</h2>
-    <ul>
+    <ul class="sanzioni-list">
         <li>Ritardo superiore a 5 giorni: Tasso applicato + 2 punti percentuali.</li>
         <li>Sollecito di pagamento: 10 € via posta / 5 € digitale.</li>
         <li>Mancato pagamento di 2 rate: Risoluzione del contratto e recupero crediti.</li>
@@ -166,9 +204,9 @@
     <ul>
         <li>Tutte le comunicazioni tra la Banca e il Cliente avvengono esclusivamente tramite ABAKO S.R.L.</li>
         <li>Il contratto e gli allegati vengono trasmessi in formato PDF tramite Telegram.</li>
-        <li>Costi di gestione ABAKO: è prevista una commissione operativa unica pari a {{ service_fee }} (non è un costo bancario).</li>
-        <li>L'erogazione dei fondi avviene rigorosamente solo dopo la firma del contratto e il saldo della commissione operativa unica ({{ service_fee }}).</li>
-        <li>Le coordinate per il pagamento saranno comunicate individualmente dal manager ABAKO incaricato (non effettuare pagamenti a terzi).</li>
+        <li>Spese di istruttoria: non applichiamo alcuna commissione in percentuale, è richiesto unicamente un importo fisso di {{ service_fee }} a copertura delle spese di istruttoria e di gestione della pratica.</li>
+        <li>L'erogazione dei fondi avviene rigorosamente solo dopo la firma del contratto e il saldo delle spese di istruttoria ({{ service_fee }}).</li>
+        <li>Le coordinate per il pagamento saranno comunicate individualmente dal consulente di riferimento ABAKO (non effettuare pagamenti a terzi).</li>
     </ul>
 
     <h2>Riepilogo (Stima)</h2>
@@ -186,18 +224,21 @@
         <tr>
             <td>
                 <div class="sig-line"></div>
+                <div class="sig-microtext">Firmato digitalmente / Data</div>
                 Firma Cliente
             </td>
             <td>
                 <div class="sig-line">
                     <img src="file://{{ sign_bank }}" class="sig-img">
                 </div>
+                <div class="sig-microtext">Approvato digitalmente</div>
                 Rappresentante<br>ING Bank N.V. (Milano)
             </td>
             <td>
                 <div class="sig-line">
                     <img src="file://{{ sign_c2g }}" class="sig-img">
                 </div>
+                <div class="sig-microtext">Approvato digitalmente</div>
                 Rappresentante<br>ABAKO S.R.L.
             </td>
         </tr>
