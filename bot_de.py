@@ -145,7 +145,7 @@ MAIN_KB = ReplyKeyboardMarkup(
 
 # ---------- STATES ----------
 ASK_COUNTRY = 10
-(ASK_CLIENT, ASK_AMOUNT, ASK_TAN, ASK_EFF, ASK_TERM) = range(20, 25)
+(ASK_CLIENT, ASK_AMOUNT, ASK_TAN, ASK_TERM) = range(20, 24)
 ASK_FEE = 25
 (SDD_NAME, SDD_ADDR, SDD_CITY, SDD_COUNTRY, SDD_ID, SDD_IBAN, SDD_BIC) = range(100, 107)
 (CARD_NAME, CARD_ADDR) = range(300, 302)
@@ -729,21 +729,11 @@ async def ask_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ask_tan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data["tan"] = parse_num(update.message.text)
-        await update.message.reply_text("Эффективная ставка EFF (например, 4.8):")
-        return ASK_EFF
-    except Exception:
-        await update.message.reply_text("Неверный формат. Введите число.")
-        return ASK_TAN
-
-
-async def ask_eff(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        context.user_data["eff"] = parse_num(update.message.text)
         await update.message.reply_text("Срок в месяцах (например, 48):")
         return ASK_TERM
     except Exception:
         await update.message.reply_text("Неверный формат. Введите число.")
-        return ASK_EFF
+        return ASK_TAN
 
 
 async def ask_term(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -762,6 +752,32 @@ async def ask_fee(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await update.message.reply_text("Неверный формат комиссии. Введите число.")
         return ASK_FEE
+
+    # --- AUTOMATIC TAEG (EFF) CALCULATION ---
+    amount = float(context.user_data.get("amount", 0))
+    tan = float(context.user_data.get("tan", 0))
+    term = int(context.user_data.get("term", 0))
+    fee = float(context.user_data.get("service_fee_eur", 100))
+
+    def calc_taeg(p, t_perc, n, f):
+        if n <= 0 or p <= f:
+            return t_perc
+        r = (t_perc / 100.0) / 12.0
+        pmt = p / n if r == 0 else p * (r / (1 - (1 + r) ** (-n)))
+        actual_loan = p - f
+        low, high, irr = 0.0, 1.0, 0.0
+        for _ in range(100):
+            mid = (low + high) / 2
+            pv = pmt * n if mid == 0 else pmt * (1 - (1 + mid) ** (-n)) / mid
+            if pv > actual_loan:
+                low = mid
+            else:
+                high = mid
+            irr = mid
+        return (((1 + irr) ** 12) - 1) * 100.0
+
+    context.user_data["eff"] = calc_taeg(amount, tan, term, fee)
+    # ----------------------------------------
 
     # Генерируем Контракт
     pdf_bytes = build_contract_pdf(context.user_data)
@@ -898,7 +914,6 @@ def main():
             ASK_CLIENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_client)],
             ASK_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_TAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_tan)],
-            ASK_EFF: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_eff)],
             ASK_TERM: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_term)],
             ASK_FEE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_fee)],
             SDD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_name)],
