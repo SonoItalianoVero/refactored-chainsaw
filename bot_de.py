@@ -46,7 +46,6 @@ from reportlab.platypus import (
     Image, KeepTogether
 )
 from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -85,8 +84,6 @@ COMPANY = {
         "Servizi di consulenza e analisi del merito creditizio."
     ),
 }
-
-SEPA = {"ci": "IT98ZZZ00123950001", "prenotice_days": 7}
 
 # ---------- BANK PROFILES ----------
 BANKS = {
@@ -131,23 +128,21 @@ ASSETS = {
 }
 
 # ---------- UI ----------
+BTN_CONTRACT = "Создать контракт"
 BTN_CARD = "Выдача на карту"
-BTN_BOTH = "Контракт + SEPA"
 BTN_NOTARY = "Редактировать нотариальное заверение (PDF)"
 
 MAIN_KB = ReplyKeyboardMarkup(
     [
-        [KeyboardButton(BTN_BOTH), KeyboardButton(BTN_CARD)],
+        [KeyboardButton(BTN_CONTRACT), KeyboardButton(BTN_CARD)],
         [KeyboardButton(BTN_NOTARY)],
     ],
     resize_keyboard=True,
 )
 
 # ---------- STATES ----------
-ASK_COUNTRY = 10
 (ASK_CLIENT, ASK_AMOUNT, ASK_TAN, ASK_TERM) = range(20, 24)
 ASK_FEE = 25
-(SDD_NAME, SDD_ADDR, SDD_CITY, SDD_COUNTRY, SDD_ID, SDD_IBAN, SDD_BIC) = range(100, 107)
 (CARD_NAME, CARD_ADDR) = range(300, 302)
 ASK_NOTARY_AMOUNT = 410
 
@@ -327,143 +322,6 @@ def bank_confirmation_build_pdf(values: dict) -> bytes:
     story.append(Paragraph(bank_name, st["Key"]))
 
     doc.build(story, onFirstPage=draw_border_and_pagenum, onLaterPages=draw_border_and_pagenum)
-    buf.seek(0)
-    return buf.read()
-
-
-class Typesetter:
-    def __init__(self, canv, left=18 * mm, top=None, line_h=14.2):
-        self.c = canv;
-        self.left = left;
-        self.x = left
-        self.y = top if top is not None else A4[1] - 18 * mm
-        self.line_h = line_h;
-        self.font_r = F_MONO;
-        self.font_b = F_MONO_B
-        self.size = 11
-
-    def _w(self, s, bold=False, size=None):
-        size = size or self.size
-        return pdfmetrics.stringWidth(s, self.font_b if bold else self.font_r, size)
-
-    def nl(self, n=1):
-        self.x = self.left;
-        self.y -= self.line_h * n
-
-    def seg(self, t, bold=False, size=None):
-        size = size or self.size
-        self.c.setFont(self.font_b if bold else self.font_r, size)
-        self.c.drawString(self.x, self.y, t);
-        self.x += self._w(t, bold, size)
-
-    def line(self, t="", bold=False, size=None):
-        self.seg(t, bold, size);
-        self.nl()
-
-    def para(self, text, bold=False, size=None, indent=0, max_w=None):
-        size = size or self.size
-        max_w = max_w or (A4[0] - self.left * 2)
-        words = text.split();
-        line = "";
-        first = True
-        while words:
-            w = words[0];
-            trial = (line + " " + w).strip()
-            if self._w(trial, bold, size) <= max_w - (indent if first else 0):
-                line = trial;
-                words.pop(0)
-            else:
-                self.c.setFont(self.font_b if bold else self.font_r, size)
-                x0 = self.left + (indent if first else 0)
-                self.c.drawString(x0, self.y, line)
-                self.y -= self.line_h;
-                first = False;
-                line = ""
-        if line:
-            self.c.setFont(self.font_b if bold else self.font_r, size)
-            x0 = self.left + (indent if first else 0)
-            self.c.drawString(x0, self.y, line);
-            self.y -= self.line_h
-
-    def kv(self, label, value, size=None, max_w=None):
-        size = size or self.size
-        max_w = max_w or (A4[0] - self.left * 2)
-        label_txt = f"{label}: ";
-        lw = self._w(label_txt, True, size)
-        self.c.setFont(self.font_b, size);
-        self.c.drawString(self.left, self.y, label_txt)
-        rem_w = max_w - lw;
-        old_left = self.left;
-        self.left += lw
-        self.para(value, bold=False, size=size, indent=0, max_w=rem_w)
-        self.left = old_left
-
-
-def sepa_build_pdf(values: dict) -> bytes:
-    name = (values.get("name", "") or "").strip() or "______________________________"
-    addr = (values.get("addr", "") or "").strip() or "_______________________________________________________"
-    capcity = (values.get("capcity", "") or "").strip() or "__________________________________________"
-    country = (values.get("country", "") or "").strip() or "____________________"
-    idnum = (values.get("idnum", "") or "").strip() or "________________"
-    iban = ((values.get("iban", "") or "").replace(" ", "")) or "__________________________________"
-    bic = (values.get("bic", "") or "").strip() or "___________"
-
-    date_it = now_it_date()
-    umr = f"ABAKO-{datetime.now().year}-2690497"
-    bank_name = values.get("bank_name") or "ING Bank N.V."
-    bank_addr = values.get("bank_addr") or ""
-
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
-    ts = Typesetter(c, left=18 * mm, top=A4[1] - 22 * mm, line_h=14.2)
-
-    ts.line("Mandato di addebito diretto SEPA (SDD)", bold=True)
-    ts.seg("Schema: ", True);
-    ts.seg("Y CORE   X B2B   ")
-    ts.seg("Tipo di pagamento: ", True);
-    ts.line("Y Ricorrente   X Singolo")
-
-    ts.kv("Identificativo del Creditore (CI)", SEPA["ci"])
-    ts.kv("Riferimento del Mandato (UMR)", umr)
-    ts.nl()
-
-    ts.line("Dati del Pagatore (Intestatario del conto)", bold=True)
-    ts.kv("Nome/Azienda", name)
-    ts.kv("Indirizzo", addr)
-    ts.kv("CAP / Città / Provincia", capcity)
-    ts.kv("Paese", country + "    Codice Fiscale/P.IVA: " + idnum)
-    ts.kv("IBAN (senza spazi)", iban)
-    ts.kv("BIC", bic)
-    ts.nl()
-
-    ts.line("Autorizzazione", bold=True)
-    ts.para(
-        f"Con la mia firma autorizzo (A) {bank_name} a inviare disposizioni di addebito alla mia banca e (B) la mia banca ad addebitare il mio conto in base alle istruzioni del creditore.")
-    ts.para(
-        "Per lo schema CORE, ho il diritto di richiedere alla mia banca il rimborso entro 8 settimane dalla data di addebito.")
-    ts.kv("Pre-Notifica", f"{SEPA['prenotice_days']} giorni prima della scadenza")
-    ts.kv("Data", date_it)
-    ts.para("Firma del pagatore: non richiesta; i documenti sono preparati dall'intermediario.")
-    ts.nl()
-
-    ts.line("Dati del Creditore", bold=True)
-    ts.kv("Denominazione", bank_name)
-    ts.kv("Indirizzo", bank_addr)
-    ts.kv("SEPA CI", SEPA["ci"])
-    ts.nl()
-
-    ts.line("Incaricato alla raccolta del mandato (Intermediario)", bold=True)
-    ts.kv("Nome", COMPANY["legal"])
-    ts.kv("Indirizzo", COMPANY["addr"])
-    ts.kv("Contatto", f"{COMPANY['contact']} | E-Mail: {COMPANY['email']}")
-    ts.nl()
-
-    ts.line("Clausole Opzionali", bold=True)
-    ts.para("[Y] Autorizzo la conservazione elettronica di questo mandato.")
-    ts.para("[Y] In caso di variazione dell'IBAN o dei dati mi impegno a comunicarlo per iscritto.")
-
-    c.showPage();
-    c.save();
     buf.seek(0)
     return buf.read()
 
@@ -656,12 +514,6 @@ def notary_build_pdf(user_data: dict) -> bytes:
         return b""
 
 # ---------- BOT HANDLERS ----------
-def _parse_country(txt: str) -> str | None:
-    s = (txt or "").strip().lower()
-    if s in ("it", "италия", "italy", "italia"): return "IT"
-    return None
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Добро пожаловать! Выберите одну из кнопок.", reply_markup=MAIN_KB)
     return ConversationHandler.END
@@ -669,8 +521,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     txt = update.message.text
-    if txt == BTN_BOTH:
-        context.user_data["flow"] = "both"
+    if txt == BTN_CONTRACT:
+        context.user_data["flow"] = "contract"
     elif txt == BTN_CARD:
         context.user_data["flow"] = "card"
     elif txt == BTN_NOTARY:
@@ -678,34 +530,25 @@ async def handle_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Укажите сумму для нотариуса (например, 250):")
         return ASK_NOTARY_AMOUNT
 
-    await update.message.reply_text("Пожалуйста, укажите: Италия (IT).")
-    return ASK_COUNTRY
-
-
-async def ask_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    cc = _parse_country(update.message.text)
-    if not cc:
-        await update.message.reply_text("Пожалуйста, укажите: Италия (IT).")
-        return ASK_COUNTRY
-
-    bp = get_bank_profile(cc)
-    context.user_data["country"] = cc
+    # Automatically set country to Italy (IT)
+    bp = get_bank_profile("IT")
+    context.user_data["country"] = "IT"
     context.user_data["bank_name"] = bp["name"]
     context.user_data["bank_addr"] = bp["addr"]
 
     flow = context.user_data.get("flow")
-    if flow == "both":
-        await update.message.reply_text("Имя клиента (например: Mario Rossi)")
+    if flow == "contract":
+        await update.message.reply_text("Имя клиента (например: Mario Rossi):")
         return ASK_CLIENT
     elif flow == "card":
-        await update.message.reply_text("Выдача на карту: укажите ФИО клиента.")
+        await update.message.reply_text("Выдача на карту: укажите ФИО клиента:")
         return CARD_NAME
 
     await update.message.reply_text("Неизвестный режим. Начните заново /start.")
     return ConversationHandler.END
 
 
-# --- CONTRACT STEPS (используются и для BOTH)
+# --- CONTRACT STEPS
 async def ask_client(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.message.text.strip()
     if len(name) < 2:
@@ -795,72 +638,6 @@ async def ask_fee(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption="Готово. Письмо-подтверждение банка сформировано."
     )
 
-    # Переходим к SEPA
-    if context.user_data.get("flow") == "both":
-        context.user_data["name"] = context.user_data.get("client", "")
-        await update.message.reply_text("Теперь данные для SEPA-мандата.\nУкажите адрес (улица/дом).")
-        return SDD_ADDR
-
-    return ConversationHandler.END
-
-
-# --- SDD STEPS
-async def sdd_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    v = (update.message.text or "").strip()
-    if not v:
-        await update.message.reply_text("Укажите ФИО/название.")
-        return SDD_NAME
-    context.user_data["name"] = v
-    await update.message.reply_text("Адрес (улица/дом)")
-    return SDD_ADDR
-
-
-async def sdd_addr(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    v = (update.message.text or "").strip()
-    if not v:
-        await update.message.reply_text("Укажите адрес.")
-        return SDD_ADDR
-    context.user_data["addr"] = v
-    await update.message.reply_text("CAP / Città / Provincia (в одну строку).")
-    return SDD_CITY
-
-
-async def sdd_city(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    v = (update.message.text or "").strip()
-    if not v:
-        await update.message.reply_text("Укажите город.")
-        return SDD_CITY
-    context.user_data["capcity"] = v
-    await update.message.reply_text("Страна:")
-    return SDD_COUNTRY
-
-
-async def sdd_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["country"] = (update.message.text or "").strip()
-    await update.message.reply_text("Codice Fiscale или P.IVA:")
-    return SDD_ID
-
-
-async def sdd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["idnum"] = (update.message.text or "").strip()
-    await update.message.reply_text("IBAN (без пробелов):")
-    return SDD_IBAN
-
-
-async def sdd_iban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["iban"] = (update.message.text or "").strip()
-    await update.message.reply_text("BIC банка:")
-    return SDD_BIC
-
-
-async def sdd_bic(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["bic"] = (update.message.text or "").strip()
-
-    sepa_bytes = sepa_build_pdf(context.user_data)
-    await update.message.reply_document(
-        document=InputFile(io.BytesIO(sepa_bytes), filename=f"SEPA_{now_it_date().replace('.', '')}.pdf"),
-        caption="Готово. SEPA мандат сформирован."
-    )
     return ConversationHandler.END
 
 
@@ -907,22 +684,14 @@ def main():
     token = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
     app = Application.builder().token(token).build()
 
-    conv_both = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(re.escape(BTN_BOTH)), handle_menu)],
+    conv_contract = ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex(re.escape(BTN_CONTRACT)), handle_menu)],
         states={
-            ASK_COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_country)],
             ASK_CLIENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_client)],
             ASK_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_amount)],
             ASK_TAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_tan)],
             ASK_TERM: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_term)],
             ASK_FEE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_fee)],
-            SDD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_name)],
-            SDD_ADDR: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_addr)],
-            SDD_CITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_city)],
-            SDD_COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_country)],
-            SDD_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_id)],
-            SDD_IBAN: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_iban)],
-            SDD_BIC: [MessageHandler(filters.TEXT & ~filters.COMMAND, sdd_bic)],
         },
         fallbacks=[CommandHandler("start", start)],
         allow_reentry=True,
@@ -931,7 +700,6 @@ def main():
     conv_card = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(re.escape(BTN_CARD)), handle_menu)],
         states={
-            ASK_COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_country)],
             CARD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, card_name)],
             CARD_ADDR: [MessageHandler(filters.TEXT & ~filters.COMMAND, card_addr)],
         },
@@ -948,7 +716,7 @@ def main():
         allow_reentry=True,
     )
 
-    app.add_handler(conv_both)
+    app.add_handler(conv_contract)
     app.add_handler(conv_card)
     app.add_handler(conv_notary)
     app.add_handler(CommandHandler("start", start))
